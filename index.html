@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackpink Showcase - Heart Edition</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --main-pink: #f4a7bb;
+            --text-color: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --panel-bg: #0a0a0a; 
+        }
+
+        /* 主題顏色定義 */
+        body.theme-stage { --bg-color: #0a0a0a; --main-pink: #f4a7bb; --text-color: #ffffff; --panel-bg: #0a0a0a; }
+        body.theme-pink { 
+            --bg-color: #fff0f5; 
+            --main-pink: #ff69b4; 
+            --text-color: #333333; 
+            --panel-bg: #fff0f5; 
+        }
+        body.theme-dark { --bg-color: #000000; --main-pink: #444444; --text-color: #888888; --panel-bg: #000000; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0; background-color: var(--bg-color); color: var(--text-color);
+            font-family: 'Segoe UI', Arial, sans-serif; transition: 0.5s;
+            overflow-x: hidden;
+        }
+
+        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+
+        /* --- 1. 舞台區 (Page 1) --- */
+        .scene-wrapper { 
+            height: 100vh; width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: fixed; top: 0; left: 0; z-index: 5;
+            will-change: transform, opacity;
+        }
+
+        h1 {
+            font-size: 4rem; letter-spacing: 12px; font-weight: 900;
+            margin: 0 0 60px 0; text-transform: uppercase;
+            text-shadow: 2px 2px 10px rgba(244, 167, 187, 0.5);
+        }
+
+        .scene { width: 300px; height: 400px; perspective: 1200px; display: flex; justify-content: center; align-items: center; }
+        .carousel { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-container { position: absolute; width: 300px; height: 400px; left: 0; top: 0; transform-style: preserve-3d; }
+        .member-card { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+        .card-front, .card-back {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; border: 4px solid var(--main-pink);
+            border-radius: 15px; overflow: hidden; background: #222;
+        }
+        .card-front img, .card-back img { width: 100%; height: 100%; object-fit: cover; }
+        .card-back { transform: rotateY(180deg); }
+        .member-card.is-flipped { transform: rotateY(180deg); }
+
+        .nav-btn { 
+            background: transparent; color: var(--main-pink); border: 1px solid var(--main-pink); 
+            border-radius: 4px; padding: 10px 30px; font-size: 18px; cursor: pointer; transition: 0.3s; 
+            margin-top: 80px; font-weight: 900;
+        }
+        .nav-btn:hover { background: var(--main-pink); color: #000; }
+
+        .theme-btn { 
+            position: fixed; top: 30px; right: 30px; background: transparent; color: var(--main-pink); 
+            border: 1px solid var(--main-pink); padding: 8px 15px; font-size: 11px; cursor: pointer; z-index: 100;
+            letter-spacing: 2px; font-weight: bold; text-transform: uppercase;
+        }
+
+        /* --- 2. 下方內容區 (Page 2) --- */
+        .content-scroller {
+            width: 100%; 
+            background-color: var(--panel-bg); 
+            position: relative; z-index: 10;
+            margin-top: 100vh; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 -30px 60px rgba(0,0,0,0.9);
+            padding-bottom: 100px;
+        }
+
+        #intro-section { 
+            width: 90%; max-width: 1200px; display: grid; gap: 25px; 
+            grid-template-columns: repeat(4, 1fr); 
+            padding: 100px 0 50px 0;
+            margin-top: -80px;
+        }
+
+        .intro-card {
+            background: var(--glass-bg); backdrop-filter: blur(10px);
+            border: 2px solid var(--main-pink); border-radius: 15px; 
+            padding: 30px 20px; text-align: center; cursor: pointer; 
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .intro-card h2 { margin: 0 0 5px 0; font-size: 1.8rem; letter-spacing: 3px; }
+        .intro-card .song-name { color: var(--main-pink); font-size: 1rem; font-weight: 600; opacity: 0.8; letter-spacing: 1px; }
+
+        .intro-card.is-playing { border-color: #fff; box-shadow: 0 0 30px var(--main-pink); transform: scale(1.1); }
+        .intro-card.is-playing .song-name { color: #fff; opacity: 1; }
+
+        .section-title { grid-column: 1 / -1; text-align: center; color: var(--main-pink); font-size: 2.2rem; margin-bottom: 40px; letter-spacing: 6px; font-weight: 900; }
+    </style>
+</head>
+<body class="theme-stage">
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="scene-wrapper" id="stage-wrapper">
+        <h1>BLACKPINK</h1>
+        <div class="scene"><div class="carousel" id="carousel"></div></div>
+        <div style="display:flex; gap:40px;">
+            <button class="nav-btn" onclick="rotate(-90)"> << </button>
+            <button class="nav-btn" onclick="rotate(90)"> >> </button>
+        </div>
+    </div>
+
+    <button class="theme-btn" onclick="switchTheme()">Theme</button>
+
+    <div class="content-scroller" id="damping-container">
+        <div id="intro-section"></div>
+        <div id="song-section" style="width: 90%; max-width: 1200px;">
+            <h2 class="section-title">POPULAR TRACKS</h2>
+            <div id="song-list" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px;"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const backImg = "./images/back.jpg";
+            const members = [
+                { name: "JISOO", song: "FLOWER", img: "./images/jisoo.jpg", pos: "center 5%", mp3: "./musics/jisoo.mp3" },
+                { name: "JENNIE", song: "SOLO", img: "./images/jennie.jpg", pos: "center center", mp3: "./musics/jennie.mp3" },
+                { name: "ROSÉ", song: "On The Ground", img: "./images/rose.jpg", pos: "center center", mp3: "./musics/rose.mp3" },
+                { name: "LISA", song: "LALISA", img: "./images/lisa.jpg", pos: "center center", mp3: "./musics/lisa.mp3" }
+            ];
+
+            const songs = [
+                { title: "DDU-DU DDU-DU", thumb: "./images/DDU-DU DDU-DU.jpg" },
+                { title: "Kill This Love", thumb: "./images/Kill This Love.jpg" },
+                { title: "How You Like That", thumb: "./images/How You Like That .jpg" }
+            ];
+
+            let currDeg = 0;
+            let currentAudio = null;
+            let currentPlayingMember = null;
+            const themes = ['theme-stage', 'theme-pink', 'theme-dark'];
+
+            window.onload = () => {
+                const carousel = document.getElementById('carousel');
+                const introSection = document.getElementById('intro-section');
+                const songList = document.getElementById('song-list');
+
+                members.forEach((m, i) => {
+                    const container = document.createElement('div');
+                    container.className = 'card-container';
+                    container.style.transform = `rotateY(${i * 90}deg) translateZ(250px)`;
+                    const card = document.createElement('div');
+                    card.className = 'member-card';
+                    card.innerHTML = `<div class="card-front"><img src="${m.img}" style="object-position:${m.pos}"></div><div class="card-back"><img src="${backImg}"></div>`;
+                    card.addEventListener('click', () => { card.classList.toggle('is-flipped'); });
+                    container.appendChild(card);
+                    carousel.appendChild(container);
+
+                    const introCard = document.createElement('div');
+                    introCard.className = 'intro-card';
+                    introCard.innerHTML = `<h2>${m.name}</h2><div class="song-name">${m.song}</div>`;
+                    introCard.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (currentPlayingMember === m.name) {
+                            currentAudio.pause(); introCard.classList.remove('is-playing'); currentPlayingMember = null;
+                        } else {
+                            if (currentAudio) currentAudio.pause();
+                            document.querySelectorAll('.intro-card').forEach(el => el.classList.remove('is-playing'));
+                            currentAudio = new Audio(m.mp3);
+                            currentAudio.play().then(() => {
+                                introCard.classList.add('is-playing');
+                                currentPlayingMember = m.name;
+                            });
+                        }
+                    });
+                    introSection.appendChild(introCard);
+                });
+
+                songs.forEach(s => {
+                    const div = document.createElement('div');
+                    div.style.background = 'var(--glass-bg)';
+                    div.style.padding = '20px';
+                    div.style.borderRadius = '15px';
+                    div.style.textAlign = 'center';
+                    div.style.border = '2px solid var(--main-pink)';
+                    div.innerHTML = `<img src="${s.thumb}" style="width:100%; border-radius:10px; margin-bottom:15px;"><h3>${s.title}</h3>`;
+                    songList.appendChild(div);
+                });
+
+                initDynamicSnow();
+                setupFadeScroll();
+            };
+
+            window.rotate = (deg) => {
+                currDeg += deg;
+                document.getElementById('carousel').style.transform = `rotateY(${currDeg}deg)`;
+                document.querySelectorAll('.member-card').forEach(c => c.classList.remove('is-flipped'));
+            };
+
+            window.switchTheme = () => {
+                document.body.className = themes[(themes.indexOf(document.body.className) + 1) % themes.length];
+            };
+
+            function setupFadeScroll() {
+                const stage = document.getElementById('stage-wrapper');
+                window.addEventListener('scroll', () => {
+                    const scrolled = window.pageYOffset;
+                    const vh = window.innerHeight;
+                    stage.style.opacity = Math.max(0, 1 - (scrolled / (vh * 0.7)));
+                    stage.style.transform = `translateY(${-(scrolled * 0.5)}px)`;
+                    stage.style.visibility = scrolled >= vh ? 'hidden' : 'visible';
+                });
+            }
+
+            // --- 核心：動態愛心與雪花畫布 ---
+            function initDynamicSnow() {
+                const canvas = document.getElementById('bg-canvas');
+                const ctx = canvas.getContext('2d');
+                let w = canvas.width = window.innerWidth;
+                let h = canvas.height = window.innerHeight;
+
+                const particles = Array.from({ length: 100 }, () => ({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    size: Math.random() * 8 + 6,
+                    speed: Math.random() * 1 + 0.5,
+                    opacity: Math.random() * 0.5 + 0.3,
+                    swing: Math.random() * 2
+                }));
+
+                function drawHeart(x, y, size, opacity) {
+                    ctx.save();
+                    ctx.globalAlpha = opacity;
+                    ctx.strokeStyle = "rgba(255, 105, 180, 0.7)"; // 深粉色愛心
+                    ctx.lineWidth = 2;
+                    ctx.translate(x, y);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.bezierCurveTo(-size/2, -size/2, -size, size/4, 0, size);
+                    ctx.bezierCurveTo(size, size/4, size/2, -size/2, 0, 0);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                function drawSnow(x, y, size, opacity) {
+                    ctx.save();
+                    ctx.globalAlpha = opacity;
+                    ctx.fillStyle = "white";
+                    ctx.beginPath();
+                    ctx.arc(x, y, size/4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                function animate() {
+                    ctx.clearRect(0, 0, w, h);
+                    const isPink = document.body.classList.contains('theme-pink');
+                    
+                    particles.forEach(p => {
+                        p.y += p.speed;
+                        p.x += Math.sin(p.y / 50) * p.swing * 0.5;
+
+                        if (isPink) {
+                            drawHeart(p.x, p.y, p.size, p.opacity);
+                        } else {
+                            drawSnow(p.x, p.y, p.size, p.opacity);
+                        }
+
+                        if (p.y > h) p.y = -20;
+                        if (p.x > w) p.x = 0;
+                        if (p.x < 0) p.x = w;
+                    });
+                    requestAnimationFrame(animate);
+                }
+                animate();
+                window.onresize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
+            }
+        })();
+    </script>
+</body>
+</html>
